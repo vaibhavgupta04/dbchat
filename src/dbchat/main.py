@@ -1,7 +1,6 @@
 from typing import Union
-
 from fastapi import FastAPI
-
+from src.models.openai import query
 app = FastAPI()
 
 
@@ -11,6 +10,7 @@ def read_root():
 
 if __name__ == "__main__":
     import uvicorn
+    print(query)
     uvicorn.run(app, 
                 host="localhost", 
                 port=8000)
