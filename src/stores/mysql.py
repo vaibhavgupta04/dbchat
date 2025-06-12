@@ -1,13 +1,39 @@
-import os
-os.environ["OPENAI_API_KEY"] = ""
-
-db_user = ""
-db_password = ""
-db_host = ""
-db_name = "testdb"
+from settings.dev_settings import settings
 from langchain_community.utilities.sql_database import SQLDatabase
-# db = SQLDatabase.from_uri(f"mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_name}",sample_rows_in_table_info=1,include_tables=['customers','orders'],custom_table_info={'customers':"customer"})
-db = SQLDatabase.from_uri(f"mysql+pymysql://root:admin@localhost:3306/testdb")
-print(db.dialect)
-print(db.get_usable_table_names())
-print(db.table_info)
+import threading
+
+class MySQLConfig:
+    def __init__(self, user, password, host, port, db_name):
+        self.user = user
+        self.password = password
+        self.host = host
+        self.port = port
+        self.db_name = db_name
+
+    @property
+    def url(self):
+        return f"mysql+pymysql://{self.user}:{self.password}@{self.host}:{self.port}/{self.db_name}"
+
+class SQLDatabaseSingleton:
+    _instance = None
+    _lock = threading.Lock()
+
+    @classmethod
+    def get_instance(cls, config: MySQLConfig):
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:  # Double-checked locking
+                    cls._instance = SQLDatabase.from_uri(config.url)
+        return cls._instance
+
+# Initialize config from settings
+config = MySQLConfig(
+    user=settings.MYSQL_USER,
+    password=settings.MYSQL_PASSWORD,
+    host=settings.MYSQL_HOST,
+    port=settings.MYSQL_PORT,
+    db_name=settings.MYSQL_DB
+)
+
+# Get singleton database instance
+db = SQLDatabaseSingleton.get_instance(config)
